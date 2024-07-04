@@ -1,9 +1,17 @@
 const fs = require("fs");
 const express = require("express");
+const morgan = require("morgan");
 
 const app = express();
-//middleware for post
+//MIDDLEWARE
+app.use(morgan("dev"));
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log("Hello from the middleware");
+  next();
+});
+
+//ROUTES HANDLER
 
 const getAllTours = (req, res) => {
   res.status(200).json({
@@ -98,13 +106,26 @@ const tours = JSON.parse(
 // //delete method
 // app.delete("/api/v1/tours/:id", deleteTour);
 
+//ROUTES
 //refactoring routes
+//tours route
 app.route("/api/v1/tours").get(getAllTours).post(createTour);
+
 app
   .route("/api/v1/tours/:id")
   .get(getTour)
   .patch(updateTour)
   .delete(deleteTour);
+
+//users route
+app.route("/api/v1/users").get(getAllUsers).post(createUser);
+app
+  .route("/api/v1/users/:id")
+  .get(getUser)
+  .patch(updateUser)
+  .delete(deleteUser);
+
+//START SERVER
 
 const port = 3000;
 app.listen(port, () => {

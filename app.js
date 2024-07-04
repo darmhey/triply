@@ -8,8 +8,11 @@ const app = express();
 app.use(express.json());
 
 //MIDDLEWARE
+console.log(process.env.NODE_ENV);
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
-// app.use(morgan("dev"));
 // app.use((req, res, next) => {
 //   console.log("Hello from the middleware");
 //   next();
@@ -18,9 +21,4 @@ app.use(express.json());
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tours", tourRouter);
 
-//START SERVER
-
-const port = 3000;
-app.listen(port, () => {
-  console.log(`App running on port ${port}...`);
-});
+module.exports = app;

@@ -64,6 +64,10 @@ const tourSchema = new mongoose.Schema({
   },
 });
 
+//DOCUMENT middleware runs before .save() and .create()
+// tourSchema.pre("save", function () {
+//   console.log(this);
+// });
 //mongoose model
 const Tour = mongoose.model("Tour", tourSchema);
 

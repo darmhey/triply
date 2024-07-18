@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
+const { promisify } = require("util");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 
@@ -29,21 +30,55 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
-  //check if email and password is correct
+  //1 - check if email and password is correct
   if (!email || !password) {
     return next(new AppError("Please provide Email and Password", 400));
   }
-  //check if user exists and password is correct
+  //2 - check if user exists and password is correct
   const user = await User.findOne({ email }).select("password");
   const passwordMatch = await user.passwordMatch(password, user.password);
 
   if (!user || !passwordMatch) {
     return next(new AppError("Email or password incorrect", 401));
   }
-  //if everything is okay, send token to client
+  //3 - if everything is okay, send token to client
   const token = signToken(user._id);
   res.status(200).json({
     status: "success",
     token,
   });
+});
+
+exports.protectAccess = catchAsync(async (req, res, next) => {
+  let token;
+  //1 - Getting token and checking if it exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  console.log(token);
+
+  if (!token) {
+    return next(
+      new AppError("You are not loged in. Please login to gain access ", 401)
+    );
+  }
+  //2 - verification of token
+
+  //promisify the jwt.verify function why??
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  //3 - check if user still exists
+  const freshUser = await User.findById(decoded.id);
+  if (!freshUser) {
+    return next(new AppError("Token does not belong to this user ", 401));
+  }
+  //4  check if user changed password after the token was issued
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
+    return next(
+      new AppError("User recently changed password! Please log in again.", 401)
+    );
+  }
+  next();
 });

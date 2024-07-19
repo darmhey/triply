@@ -16,6 +16,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
+    role: req.body.role,
   });
 
   const token = signToken(newUser._id);
@@ -26,6 +27,8 @@ exports.signup = catchAsync(async (req, res, next) => {
       user: newUser,
     },
   });
+
+  next(new AppError("Theres been an error", 401));
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -65,13 +68,13 @@ exports.protectAccess = catchAsync(async (req, res, next) => {
       new AppError("You are not loged in. Please login to gain access ", 401)
     );
   }
-  //2 - verification of token
+  //2 - verification of token: check if the token we get from request is same as token assigned to the user in the database
 
   //promisify the jwt.verify function why??
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   //3 - check if user still exists
-  const freshUser = await User.findById(decoded.id);
-  if (!freshUser) {
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) {
     return next(new AppError("Token does not belong to this user ", 401));
   }
   //4  check if user changed password after the token was issued
@@ -80,5 +83,21 @@ exports.protectAccess = catchAsync(async (req, res, next) => {
       new AppError("User recently changed password! Please log in again.", 401)
     );
   }
+
+  //Grant access to restricted route
+  req.user = currentUser;
   next();
 });
+
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    // roles ['admin', 'lead-guide']. role='user'
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError("You do not have permission to perform this action", 403)
+      );
+    }
+
+    next();
+  };
+};

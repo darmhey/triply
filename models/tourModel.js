@@ -86,12 +86,25 @@ const tourSchema = new mongoose.Schema({
       day: Number,
     },
   ],
+  guides: {
+    type: mongoose.Schema.ObjectId,
+    ref: "User",
+  },
 });
 
 //DOCUMENT middleware runs before .save() and .create()
 // tourSchema.pre("save", function () {
 //   console.log(this);
 // });
+
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "guides",
+    select: "-__v -passwordChangedAt",
+  });
+
+  next();
+});
 //mongoose model
 const Tour = mongoose.model("Tour", tourSchema);
 
